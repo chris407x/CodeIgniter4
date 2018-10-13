@@ -24,5 +24,5 @@ if (! isset($_SERVER['app.baseURL']))
 //--------------------------------------------------------------------
 // Load our TestCase
 //--------------------------------------------------------------------
-
+require_once (TESTPATH . '/../vendor/autoload.php');
 require  __DIR__.'/CIUnitTestCase.php';
