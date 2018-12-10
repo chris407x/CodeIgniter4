@@ -28,14 +28,16 @@ namespace CodeIgniter\CLI;
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  *
- * @package	CodeIgniter
- * @author	CodeIgniter Dev Team
- * @copyright	2014-2018 British Columbia Institute of Technology (https://bcit.ca/)
- * @license	https://opensource.org/licenses/MIT	MIT License
- * @link	https://codeigniter.com
- * @since	Version 3.0.0
+ * @package    CodeIgniter
+ * @author     CodeIgniter Dev Team
+ * @copyright  2014-2018 British Columbia Institute of Technology (https://bcit.ca/)
+ * @license    https://opensource.org/licenses/MIT	MIT License
+ * @link       https://codeigniter.com
+ * @since      Version 3.0.0
  * @filesource
  */
+
+use CodeIgniter\Config\Services;
 use CodeIgniter\Controller;
 
 class CommandRunner extends Controller
@@ -106,9 +108,9 @@ class CommandRunner extends Controller
 	 */
 	protected function runCommand(string $command, array $params)
 	{
-		if ( ! isset($this->commands[$command]))
+		if (! isset($this->commands[$command]))
 		{
-			CLI::error('Command \'' . $command . '\' not found');
+			CLI::error(lang('CLI.commandNotFound', [$command]));
 			CLI::newLine();
 			return;
 		}
@@ -116,7 +118,7 @@ class CommandRunner extends Controller
 		// The file would have already been loaded during the
 		// createCommandList function...
 		$className = $this->commands[$command]['class'];
-		$class = new $className($this->logger, $this);
+		$class     = new $className($this->logger, $this);
 
 		return $class->run($params);
 	}
@@ -126,12 +128,10 @@ class CommandRunner extends Controller
 	/**
 	 * Scans all Commands directories and prepares a list
 	 * of each command with it's group and file.
-	 *
-	 * @return null|void
 	 */
 	protected function createCommandList()
 	{
-		$files = service('locator')->listFiles("Commands/");
+		$files = Services::locator()->listFiles('Commands/');
 
 		// If no matching command files were found, bail
 		if (empty($files))
@@ -143,7 +143,7 @@ class CommandRunner extends Controller
 		// alias exists in the class. If so, return it. Otherwise, try the next.
 		foreach ($files as $file)
 		{
-			$className = service('locator')->findQualifiedNameFromPath($file);
+			$className = Services::locator()->findQualifiedNameFromPath($file);
 			if (empty($className) || ! class_exists($className))
 			{
 				continue;
@@ -151,7 +151,7 @@ class CommandRunner extends Controller
 
 			$class = new \ReflectionClass($className);
 
-			if ( ! $class->isInstantiable() || ! $class->isSubclassOf(BaseCommand::class))
+			if (! $class->isInstantiable() || ! $class->isSubclassOf(BaseCommand::class))
 			{
 				continue;
 			}
@@ -162,10 +162,10 @@ class CommandRunner extends Controller
 			if ($class->group !== null)
 			{
 				$this->commands[$class->name] = [
-					'class'			 => $className,
-					'file'			 => $file,
-					'group'			 => $class->group,
-					'description'	 => $class->description
+					'class'       => $className,
+					'file'        => $file,
+					'group'       => $class->group,
+					'description' => $class->description,
 				];
 			}
 

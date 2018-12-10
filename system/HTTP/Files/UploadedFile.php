@@ -172,7 +172,7 @@ class UploadedFile extends File implements UploadedFileInterface
 
 		try
 		{
-			@move_uploaded_file($this->path, $destination);
+			move_uploaded_file($this->path, $destination);
 		}
 		catch (\Exception $e)
 		{
@@ -204,7 +204,7 @@ class UploadedFile extends File implements UploadedFileInterface
 		{
 			mkdir($path, 0777, true);
 			//create the index.html file
-			if (! file_exists($path . 'index.html'))
+			if (! is_file($path . 'index.html'))
 			{
 				$file = fopen($path . 'index.html', 'x+');
 				fclose($file);
@@ -342,8 +342,8 @@ class UploadedFile extends File implements UploadedFileInterface
 	 *
 	 * Is simply an alias for guessExtension for a safer method
 	 * than simply relying on the provided extension.
-	 * Additionaly it will return clientExtension in case if there are
-	 * other extensions withe the same mime type.
+	 * Additionally it will return clientExtension in case if there are
+	 * other extensions with the same mime type.
 	 */
 	public function getExtension(): string
 	{
@@ -352,7 +352,7 @@ class UploadedFile extends File implements UploadedFileInterface
 
 	public function guessExtension(): ?string
 	{
-		return \Config\Mimes::guessExtensionFromType($this->getMimeType(), $this->getClientExtension());
+		return \Config\Mimes::guessExtensionFromType($this->getClientMimeType(), $this->getClientExtension());
 	}
 
 	//--------------------------------------------------------------------
@@ -366,7 +366,7 @@ class UploadedFile extends File implements UploadedFileInterface
 	 */
 	public function getClientExtension(): string
 	{
-		return pathinfo($this->originalName, PATHINFO_EXTENSION);
+		return pathinfo($this->originalName, PATHINFO_EXTENSION) ?? '';
 	}
 
 	//--------------------------------------------------------------------

@@ -1,14 +1,14 @@
 # CodeIgniter 4 Development
 
-[![Build Status](https://travis-ci.org/codeigniter4/CodeIgniter4.svg?branch=develop)](https://travis-ci.orgcodeigniter4/CodeIgniter4)
-[![Coverage Status](https://coveralls.io/repos/github/codeigniter4/CodeIgniter4/badge.svg?branch=develop)](https://coveralls.io/githubcodeigniter4/CodeIgniter4?branch=develop)
+[![Build Status](https://travis-ci.org/codeigniter4/CodeIgniter4.svg?branch=develop)](https://travis-ci.org/codeigniter4/CodeIgniter4)
+[![Coverage Status](https://coveralls.io/repos/github/codeigniter4/CodeIgniter4/badge.svg?branch=develop)](https://coveralls.io/github/codeigniter4/CodeIgniter4?branch=develop)
 <br>
 
 ## What is CodeIgniter?
 CodeIgniter is a PHP full-stack web framework that is light, fast, flexible, and secure. 
 More information can be found at the [official site](http://codeigniter.com).
 
-This repository holds the pre-alpha code for CodeIgniter 4 only. 
+This repository holds the alpha code for CodeIgniter 4 only. 
 Version 4 is a complete rewrite to bring the quality and the code into a more modern version, 
 while still keeping as many of the things intact that has made people love the framework over the years. 
 

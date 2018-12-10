@@ -163,32 +163,64 @@ When enabled, the response object will contain an instance of ``CodeIgniter\HTTP
 values set in **application/Config/ContentSecurityPolicy.php** are applied to that instance and, if no changes are
 needed during runtime, then the correctly formatted header is sent and you're all done.
 
+With CSP enabled, two header lines are added to the HTTP response: a Content-Security-Policy header, with
+policies identifying content types or origins that are explicitly allowed for different
+contexts, and a Content-Security-Policy-Report-Only header, which identifies content types 
+or origins that will be allowed but which will also be reported to the destination
+of your choice.
+
+Our implementation provides for a default treatment, changeable through the ``reportOnly()`` method.
+When an additional entry is added to a CSP directive, as shown below, it will be added
+to the CSP header appropriate for blocking or preventing. That can be over-ridden on a per
+call basis, by providing an optional second parameter to the adding method call.
+
 Runtime Configuration
 ---------------------
 
 If your application needs to make changes at run-time, you can access the instance at ``$response->CSP``. The
-class holds a number of methods that map pretty clearly to the appropriate header value that you need to set::
+class holds a number of methods that map pretty clearly to the appropriate header value that you need to set.
+Examples are shown below, with different combinations of parameters, though all accept either a directive
+name or anarray of them.::
 
-	$reportOnly = true;
-
-	$response->CSP->reportOnly($reportOnly);
-	$response->CSP->setBaseURI('example.com', true);
-	$response->CSP->setDefaultSrc('cdn.example.com', $reportOnly);
+        // specify the default directive treatment 
+	$response->CSP->reportOnly(false); 
+        
+        // specify the origin to use if none provided for a directive
+	$response->CSP->setDefaultSrc('cdn.example.com'); 
+        // specify the URL that "report-only" reports get sent to
 	$response->CSP->setReportURI('http://example.com/csp/reports');
-	$response->CSP->setSandbox(true, ['allow-forms', 'allow-scripts']);
+        // specify that HTTP requests be upgraded to HTTPS
 	$response->CSP->upgradeInsecureRequests(true);
-	$response->CSP->addChildSrc('https://youtube.com', $reportOnly);
-	$response->CSP->addConnectSrc('https://*.facebook.com', $reportOnly);
-	$response->CSP->addFontSrc('fonts.example.com', $reportOnly);
-	$response->CSP->addFormAction('self', $reportOnly);
-	$response->CSP->addFrameAncestor('none', $reportOnly);
-	$response->CSP->addImageSrc('cdn.example.com', $reportOnly);
-	$response->CSP->addMediaSrc('cdn.example.com', $reportOnly);
-	$response->CSP->addManifestSrc('cdn.example.com', $reportOnly);
-	$response->CSP->addObjectSrc('cdn.example.com', $reportOnly);
-	$response->CSP->addPluginType('application/pdf', $reportOnly);
-	$response->CSP->addScriptSrc('scripts.example.com', $reportOnly);
-	$response->CSP->addStyleSrc('css.example.com', $reportOnly);
+
+        // add types or origins to CSP directives
+        // assuming that the default treatment is to block rather than just report
+	$response->CSP->addBaseURI('example.com', true); // report only
+	$response->CSP->addChildSrc('https://youtube.com'); // blocked
+	$response->CSP->addConnectSrc('https://*.facebook.com', false); // blocked
+	$response->CSP->addFontSrc('fonts.example.com');
+	$response->CSP->addFormAction('self');
+	$response->CSP->addFrameAncestor('none', true); // report this one
+	$response->CSP->addImageSrc('cdn.example.com');
+	$response->CSP->addMediaSrc('cdn.example.com');
+	$response->CSP->addManifestSrc('cdn.example.com');
+	$response->CSP->addObjectSrc('cdn.example.com', false); // reject from here
+	$response->CSP->addPluginType('application/pdf', false); // reject this media type
+	$response->CSP->addScriptSrc('scripts.example.com', true); // allow but report requests from here
+	$response->CSP->addStyleSrc('css.example.com');
+	$response->CSP->addSandbox(['allow-forms', 'allow-scripts']);
+
+
+The first parameter to each of the "add" methods is an appropriate string value,
+or an array of them.
+
+The ``reportOnly`` method allows you to specify the default reporting treatment
+for subsequent sources, unless over-ridden. For instance, you could specify
+that youtube.com was allowed, and then provide several allowed but reported sources::
+
+    $response->addChildSrc('https://youtube.com'); // allowed
+    $response->reportOnly(true);
+    $response->addChildSrc('https://metube.com'); // allowed but reported
+    $response->addChildSrc('https://ourtube.com',false); // allowed
 
 Inline Content
 --------------
@@ -242,7 +274,7 @@ The methods provided by the parent class that are available are:
 
 .. php:class:: CodeIgniter\\HTTP\\Response
 
-	.. php:method:: statusCode()
+	.. php:method:: getStatusCode()
 
 		:returns: The current HTTP status code for this response
 		:rtype: int
@@ -250,7 +282,7 @@ The methods provided by the parent class that are available are:
 		Returns the currently status code for this response. If no status code has been set, a BadMethodCallException
 		will be thrown::
 
-			echo $response->statusCode();
+			echo $response->getStatusCode();
 
 	.. php:method:: setStatusCode($code[, $reason=''])
 
@@ -268,14 +300,14 @@ The methods provided by the parent class that are available are:
 
 			$response->setStatusCode(230, "Tardis initiated");
 
-	.. php:method:: reason()
+	.. php:method:: getReason()
 
 		:returns: The current reason phrase.
 		:rtype: string
 
 		Returns the current status code for this response. If not status has been set, will return an empty string::
 
-			echo $response->reason();
+			echo $response->getReason();
 
 	.. php:method:: setDate($date)
 
@@ -379,7 +411,7 @@ The methods provided by the parent class that are available are:
 
 		**Array Method**
 
-		Using this method, an associative array is passed to the first
+		Using this method, an associative array is passed as the first
 		parameter::
 
 			$cookie = [
@@ -389,7 +421,8 @@ The methods provided by the parent class that are available are:
 				'domain' => '.some-domain.com',
 				'path'   => '/',
 				'prefix' => 'myprefix_',
-				'secure' => TRUE
+				'secure' => TRUE,
+                                'httponly' => FALSE
 			];
 
 			$response->setCookie($cookie);
@@ -421,4 +454,70 @@ The methods provided by the parent class that are available are:
 		If you prefer, you can set the cookie by passing data using individual
 		parameters::
 
-			$response->setCookie($name, $value, $expire, $domain, $path, $prefix, $secure);
+			$response->setCookie($name, $value, $expire, $domain, $path, $prefix, $secure, $httponly);
+
+	.. php:method:: deleteCookie($name = ''[, $domain = ''[, $path = '/'[, $prefix = '']]])
+
+		:param	mixed	$name: Cookie name or an array of parameters
+		:param	string	$domain: Cookie domain
+		:param	string	$path: Cookie path
+		:param	string	$prefix: Cookie name prefix
+		:rtype:	void
+
+		Delete an existing cookie by setting its expiry to blank.
+
+		**Notes**
+
+		Only the name is required.
+
+		The prefix is only needed if you need to avoid name collisions with
+		other identically named cookies for your server.
+                
+		Provide a prefix if cookies should only be deleted for that subset.
+                Provide a domain name if cookies should only be deleted for that domain.
+                Provide a path name if cookies should only be deleted for that path.
+
+                If any of the optional parameters are empty, then the same-named
+                cookie will be deleted across all that apply.
+
+		Example::
+
+			$response->deleteCookie($name);
+
+	.. php:method:: hasCookie($name = ''[, $value = null[, $prefix = '']])
+
+		:param	mixed	$name: Cookie name or an array of parameters
+		:param	string	$value: cookie value
+		:param	string	$prefix: Cookie name prefix
+		:rtype:	boolean
+
+		Checks to see if the Response has a specified cookie or not.
+
+		**Notes**
+
+		Only the name is required. If a prefix is specified, it will be
+                pre-pended to the cookie name.
+
+                If no value is given, the method just checks for the existence
+                of the named cookie. If a value is given, then the method checks
+                that the cookie exists, and that it has the prescribed value.
+
+		Example::
+
+			if ($response->hasCookie($name)) ...
+
+	.. php:method:: getCookie($name = ''[, $prefix = ''])
+
+		:param	mixed	$name: Cookie name
+		:param	string	$prefix: Cookie name prefix
+		:rtype:	boolean
+
+		Returns the named cookie, if found, or null.
+
+                If no name is given, returns the array of cookies.
+
+                Each cookie is returned as an associative array.
+
+		Example::
+
+			$cookie = $response->getCookie($name);

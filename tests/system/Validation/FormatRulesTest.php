@@ -27,7 +27,7 @@ class FormatRulesTest extends \CIUnitTestCase
 
 	//--------------------------------------------------------------------
 
-	public function setUp()
+	protected function setUp()
 	{
 		parent::setUp();
 		$this->validation = new Validation((object) $this->config, \Config\Services::renderer());
@@ -239,6 +239,10 @@ class FormatRulesTest extends \CIUnitTestCase
 			],
 			[
 				null,
+				false,
+			],
+			[
+				',',
 				false,
 			],
 		];

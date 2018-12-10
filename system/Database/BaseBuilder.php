@@ -36,7 +36,7 @@
  * @filesource
  */
 
-use \CodeIgniter\Database\Exceptions\DatabaseException;
+use CodeIgniter\Database\Exceptions\DatabaseException;
 
 /**
  * Class BaseBuilder
@@ -233,7 +233,10 @@ class BaseBuilder
 		{
 			foreach ($options as $key => $value)
 			{
-				$this->$key = $value;
+				if (property_exists($this, $key))
+				{
+					$this->$key = $value;
+				}
 			}
 		}
 	}
@@ -1749,7 +1752,7 @@ class BaseBuilder
 	 * @param boolean $escape Whether to escape values and identifiers
 	 * @param boolean $test   Used when running tests
 	 *
-	 * @return boolean    TRUE on success, FALSE on failure
+	 * @return BaseResult|Query|false
 	 */
 	public function insert($set = null, $escape = null, $test = false)
 	{
@@ -1832,7 +1835,7 @@ class BaseBuilder
 	 * @param array   $set       An associative array of insert values
 	 * @param boolean $returnSQL
 	 *
-	 * @return boolean TRUE on success, FALSE on failure
+	 * @return BaseResult|Query|string|false
 	 * @throws DatabaseException
 	 */
 	public function replace($set = null, $returnSQL = false)
@@ -2045,7 +2048,7 @@ class BaseBuilder
 	 * @param integer $batchSize The size of the batch to run
 	 * @param boolean $returnSQL True means SQL is returned, false will execute the query
 	 *
-	 * @return mixed    Number of rows affected or FALSE on failure
+	 * @return mixed    Number of rows affected, SQL string, or FALSE on failure
 	 * @throws \CodeIgniter\Database\Exceptions\DatabaseException
 	 */
 	public function updateBatch($set = null, $index = null, $batchSize = 100, $returnSQL = false)
@@ -2173,7 +2176,7 @@ class BaseBuilder
 
 		if (! is_array($key))
 		{
-			// @todo error
+			return;
 		}
 
 		is_bool($escape) || $escape = $this->db->protectIdentifiers;

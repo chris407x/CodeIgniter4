@@ -35,6 +35,13 @@ class FeatureTestCase extends CIDatabaseTestCase
 	protected $session = [];
 
 	/**
+	 * Enabled auto clean op buffer after request call
+	 *
+	 * @var boolean
+	 */
+	protected $clean = true;
+
+	/**
 	 * Sets a RouteCollection that will override
 	 * the application's route collection.
 	 *
@@ -115,10 +122,13 @@ class FeatureTestCase extends CIDatabaseTestCase
 			->run($this->routes, true);
 
 		// Clean up any open output buffers
-		if (ob_get_level() > 0)
+		// not relevant to unit testing
+		// @codeCoverageIgnoreStart
+		if (ob_get_level() > 0 && $this->clean)
 		{
 			ob_end_clean();
 		}
+		// @codeCoverageIgnoreEnd
 
 		$featureResponse = new FeatureResponse($response);
 

@@ -27,15 +27,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  *
- * @package      CodeIgniter
- * @author       CodeIgniter Dev Team
- * @copyright    2014-2018 British Columbia Institute of Technology (https://bcit.ca/)
- * @license      https://opensource.org/licenses/MIT	MIT License
- * @link         https://codeigniter.com
- * @since        Version 3.0.0
+ * @package    CodeIgniter
+ * @author     CodeIgniter Dev Team
+ * @copyright  2014-2018 British Columbia Institute of Technology (https://bcit.ca/)
+ * @license    https://opensource.org/licenses/MIT	MIT License
+ * @link       https://codeigniter.com
+ * @since      Version 3.0.0
  * @filesource
  */
-
 
 /**
  * Services Configuration file.
@@ -75,7 +74,7 @@ class BaseService
 	/**
 	 * Have we already discovered other Services?
 	 *
-	 * @var bool
+	 * @var boolean
 	 */
 	static protected $discovered = false;
 
@@ -120,11 +119,36 @@ class BaseService
 	//--------------------------------------------------------------------
 
 	/**
+	 * The Autoloader class is the central class that handles our
+	 * spl_autoload_register method, and helper methods.
+	 *
+	 * @param boolean $getShared
+	 *
+	 * @return \CodeIgniter\Autoloader\Autoloader
+	 */
+	public static function autoloader(bool $getShared = true)
+	{
+		if ($getShared)
+		{
+			if (empty(static::$instances['autoloader']))
+			{
+				static::$instances['autoloader'] = new \CodeIgniter\Autoloader\Autoloader();
+			}
+
+			return static::$instances['autoloader'];
+		}
+
+		return new \CodeIgniter\Autoloader\Autoloader();
+	}
+
+	//--------------------------------------------------------------------
+
+	/**
 	 * The file locator provides utility methods for looking for non-classes
 	 * within namespaced folders, as well as convenience methods for
 	 * loading 'helpers', and 'libraries'.
 	 *
-	 * @param bool $getShared
+	 * @param boolean $getShared
 	 *
 	 * @return \CodeIgniter\Autoloader\FileLocator
 	 */
@@ -132,10 +156,17 @@ class BaseService
 	{
 		if ($getShared)
 		{
-			return self::getSharedInstance('locator');
+			if (empty(static::$instances['locator']))
+			{
+				static::$instances['locator'] = new \CodeIgniter\Autoloader\FileLocator(
+					static::autoloader()
+				);
+			}
+
+			return static::$instances['locator'];
 		}
 
-		return new \CodeIgniter\Autoloader\FileLocator(new \Config\Autoload());
+		return new \CodeIgniter\Autoloader\FileLocator(static::autoloader());
 	}
 
 	//--------------------------------------------------------------------
@@ -165,12 +196,19 @@ class BaseService
 
 	/**
 	 * Reset shared instances and mocks for testing.
+	 *
+	 * @param boolean $init_autoloader Initializes autoloader instance
 	 */
-	public static function reset()
+	public static function reset(bool $init_autoloader = false)
 	{
 		static::$mocks = [];
 
 		static::$instances = [];
+
+		if ($init_autoloader)
+		{
+			static::autoloader()->initialize(new \Config\Autoload());
+		}
 	}
 
 	//--------------------------------------------------------------------
@@ -179,7 +217,7 @@ class BaseService
 	 * Inject mock object for testing.
 	 *
 	 * @param string $name
-	 * @param        $mock
+	 * @param $mock
 	 */
 	public static function injectMock(string $name, $mock)
 	{
@@ -197,6 +235,8 @@ class BaseService
 	 *
 	 * @param string $name
 	 * @param array  $arguments
+	 *
+	 * @return mixed
 	 */
 	protected static function discoverServices(string $name, array $arguments)
 	{
@@ -211,7 +251,7 @@ class BaseService
 
 				if (empty($files))
 				{
-					return;
+					return null;
 				}
 
 				// Get instances of all service classes and cache them locally.
@@ -231,7 +271,7 @@ class BaseService
 
 		if (! static::$services)
 		{
-			return;
+			return null;
 		}
 
 		// Try to find the desired service method
@@ -242,5 +282,7 @@ class BaseService
 				return $class::$name(...$arguments);
 			}
 		}
+
+		return null;
 	}
 }

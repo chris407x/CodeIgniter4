@@ -1,6 +1,6 @@
 <?php namespace CodeIgniter\Database\Live;
 
-use \CodeIgniter\Database\Exceptions\DatabaseException;
+use CodeIgniter\Database\Exceptions\DatabaseException;
 use CodeIgniter\Test\CIDatabaseTestCase;
 
 /**
@@ -222,7 +222,7 @@ class UpdateTest extends CIDatabaseTestCase
 
 	//--------------------------------------------------------------------
 
-	// @see https://bcit-ci.github.io/CodeIgniter4/database/query_builder.html#updating-data
+	// @see https://codeigniter4.github.io/CodeIgniter4/database/query_builder.html#updating-data
 	public function testSetWithoutEscape()
 	{
 		$this->db->table('job')

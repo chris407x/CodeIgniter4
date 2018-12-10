@@ -173,9 +173,7 @@ Here's an updated User entity to provide some examples of how this could be used
 
             $this->created_at->setTimezone($timezone);
 
-            return $format === true
-                ? $this->created_at
-                : $this->created_at->format($format);
+            return $this->created_at->format($format);
         }
     }
 
@@ -183,11 +181,14 @@ The first thing to notice is the name of the methods we've added. For each one, 
 column name to be converted into PascalCase, and prefixed with either ``set`` or ``get``. These methods will then
 be automatically called whenever you set or retrieve the class property using the direct syntax (i.e. $user->email).
 The methods do not need to be public unless you want them accessed from other classes. For example, the ``created_at``
-class property will be access through the ``setCreatedAt()`` and ``getCreatedAt()`` methods.
+class property will be accessed through the ``setCreatedAt()`` and ``getCreatedAt()`` methods.
+
+.. note:: This only works when trying to access the properties from outside of the track. Any methods internal to the
+    class must call the ``setX()`` and ``getX()`` methods directly.
 
 In the ``setPassword()`` method we ensure that the password is always hashed.
 
-In ``setCreatedOn()`` we convert the string we receive from the model into a DateTime object, ensuring that our timezone
+In ``setCreatedAt()`` we convert the string we receive from the model into a DateTime object, ensuring that our timezone
 is UTC so we can easily convert the the viewer's current timezone. In ``getCreatedAt()``, it converts the time to
 a formatted string in the application's current timezone.
 
@@ -317,7 +318,7 @@ the **$_options** property. The **casts** option should be an array where the ke
 and the value is the data type it should be cast to. Casting only affects when values are read. No conversions happen
 that affect the permanent value in either the entity or the database. Properties can be cast to any of the following
 data types: **integer**, **float**, **double**, **string**, **boolean**, **object**, **array**, **datetime**, and
-**timestamp**.
+**timestamp**. Add question mark at the beginning of type to mark property as nullable, i.e. **?string**, **?integer**.
 
 For example, if you had a User entity with an **is_banned** property, you can cast it as a boolean::
 
@@ -331,7 +332,8 @@ For example, if you had a User entity with an **is_banned** property, you can ca
 
         protected $_options = [
             'casts' => [
-                'is_banned' => 'boolean'
+                'is_banned' => 'boolean',
+                'is_banned_nullable' => '?boolean'
             ],
             'dates' => ['created_at', 'updated_at', 'deleted_at'],
             'datamap' => []

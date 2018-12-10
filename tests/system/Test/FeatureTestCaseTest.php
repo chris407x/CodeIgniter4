@@ -9,19 +9,24 @@ use CodeIgniter\Test\FeatureResponse;
 class FeatureTestCaseTest extends FeatureTestCase
 {
 
-	public function setUp()
+	protected function setUp()
 	{
 		parent::setUp();
 
 		$this->skipEvents();
+		$this->clean = false;
 	}
 
 	public function testCallGet()
 	{
 		$this->withRoutes([
-			['get', 'home', function() {
+			[
+				'get',
+				'home',
+				function () {
 					return 'Hello World';
-				}]
+				},
+			],
 		]);
 		$response = $this->get('home');
 
@@ -35,9 +40,13 @@ class FeatureTestCaseTest extends FeatureTestCase
 	public function testCallSimpleGet()
 	{
 		$this->withRoutes([
-			['add', 'home', function() {
+			[
+				'add',
+				'home',
+				function () {
 					return 'Hello World';
-				}]
+				},
+			],
 		]);
 		$response = $this->call('get', 'home');
 
@@ -51,9 +60,13 @@ class FeatureTestCaseTest extends FeatureTestCase
 	public function testCallPost()
 	{
 		$this->withRoutes([
-			['post', 'home', function() {
+			[
+				'post',
+				'home',
+				function () {
 					return 'Hello World';
-				}]
+				},
+			],
 		]);
 		$response = $this->post('home');
 
@@ -63,9 +76,13 @@ class FeatureTestCaseTest extends FeatureTestCase
 	public function testCallPut()
 	{
 		$this->withRoutes([
-			['put', 'home', function() {
+			[
+				'put',
+				'home',
+				function () {
 					return 'Hello World';
-				}]
+				},
+			],
 		]);
 		$response = $this->put('home');
 
@@ -75,9 +92,13 @@ class FeatureTestCaseTest extends FeatureTestCase
 	public function testCallPatch()
 	{
 		$this->withRoutes([
-			['patch', 'home', function() {
+			[
+				'patch',
+				'home',
+				function () {
 					return 'Hello World';
-				}]
+				},
+			],
 		]);
 		$response = $this->patch('home');
 
@@ -87,9 +108,13 @@ class FeatureTestCaseTest extends FeatureTestCase
 	public function testCallOptions()
 	{
 		$this->withRoutes([
-			['options', 'home', function() {
+			[
+				'options',
+				'home',
+				function () {
 					return 'Hello World';
-				}]
+				},
+			],
 		]);
 		$response = $this->options('home');
 
@@ -99,13 +124,28 @@ class FeatureTestCaseTest extends FeatureTestCase
 	public function testCallDelete()
 	{
 		$this->withRoutes([
-			['delete', 'home', function() {
+			[
+				'delete',
+				'home',
+				function () {
 					return 'Hello World';
-				}]
+				},
+			],
 		]);
 		$response = $this->delete('home');
 
 		$response->assertSee('Hello World');
+	}
+
+	public function testSession()
+	{
+		$response = $this->withSession([
+			'fruit'    => 'apple',
+			'greeting' => 'hello',
+		])->get('home');
+
+		$response->assertSessionHas('fruit', 'apple');
+		$response->assertSessionMissing('popcorn');
 	}
 
 }
