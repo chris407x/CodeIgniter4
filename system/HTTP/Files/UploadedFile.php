@@ -1,7 +1,6 @@
 <?php
-namespace CodeIgniter\HTTP\Files;
 
-use CodeIgniter\HTTP\Exceptions\HTTPException;
+
 /**
  * CodeIgniter
  *
@@ -9,7 +8,7 @@ use CodeIgniter\HTTP\Exceptions\HTTPException;
  *
  * This content is released under the MIT License (MIT)
  *
- * Copyright (c) 2014-2018 British Columbia Institute of Technology
+ * Copyright (c) 2014-2019 British Columbia Institute of Technology
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,13 +30,17 @@ use CodeIgniter\HTTP\Exceptions\HTTPException;
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2014-2018 British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 3.0.0
  * @filesource
  */
+
+namespace CodeIgniter\HTTP\Files;
+
 use CodeIgniter\Files\File;
+use CodeIgniter\HTTP\Exceptions\HTTPException;
 
 /**
  * Value object representing a single file uploaded through an
@@ -258,26 +261,26 @@ class UploadedFile extends File implements UploadedFileInterface
 	/**
 	 * Get error string
 	 *
-	 * @staticvar array $errors
+	 * @var array $errors
 	 *
 	 * @return string
 	 */
-	public function getErrorString()
+	public function getErrorString(): string
 	{
-		static $errors = [
-			UPLOAD_ERR_OK         => 'The file uploaded with success.',
-			UPLOAD_ERR_INI_SIZE   => 'The file "%s" exceeds your upload_max_filesize ini directive.',
-			UPLOAD_ERR_FORM_SIZE  => 'The file "%s" exceeds the upload limit defined in your form.',
-			UPLOAD_ERR_PARTIAL    => 'The file "%s" was only partially uploaded.',
-			UPLOAD_ERR_NO_FILE    => 'No file was uploaded.',
-			UPLOAD_ERR_CANT_WRITE => 'The file "%s" could not be written on disk.',
-			UPLOAD_ERR_NO_TMP_DIR => 'File could not be uploaded: missing temporary directory.',
-			UPLOAD_ERR_EXTENSION  => 'File upload was stopped by a PHP extension.',
+		$errors = [
+			UPLOAD_ERR_OK         => lang('HTTP.uploadErrOk'),
+			UPLOAD_ERR_INI_SIZE   => lang('HTTP.uploadErrIniSize'),
+			UPLOAD_ERR_FORM_SIZE  => lang('HTTP.uploadErrFormSize'),
+			UPLOAD_ERR_PARTIAL    => lang('HTTP.uploadErrPartial'),
+			UPLOAD_ERR_NO_FILE    => lang('HTTP.uploadErrNoFile'),
+			UPLOAD_ERR_CANT_WRITE => lang('HTTP.uploadErrCantWrite'),
+			UPLOAD_ERR_NO_TMP_DIR => lang('HTTP.uploadErrNoTmpDir'),
+			UPLOAD_ERR_EXTENSION  => lang('HTTP.uploadErrExtension'),
 		];
 
 		$error = is_null($this->error) ? UPLOAD_ERR_OK : $this->error;
 
-		return sprintf($errors[$error] ?? 'The file "%s" was not uploaded due to an unknown error.', $this->getName());
+		return sprintf($errors[$error] ?? lang('HTTP.uploadErrUnknown'), $this->getName());
 	}
 
 	//--------------------------------------------------------------------
@@ -392,7 +395,7 @@ class UploadedFile extends File implements UploadedFileInterface
 	 * @param  string $fileName   the name to rename the file to.
 	 * @return string file full path
 	 */
-	public function store($folderName = null, $fileName = null): string
+	public function store(string $folderName = null, string $fileName = null): string
 	{
 		$folderName = $folderName ?? date('Ymd');
 		$fileName   = $fileName ?? $this->getRandomName();

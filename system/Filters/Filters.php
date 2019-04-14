@@ -1,4 +1,4 @@
-<?php namespace CodeIgniter\Filters;
+<?php
 
 /**
  * CodeIgniter
@@ -7,7 +7,7 @@
  *
  * This content is released under the MIT License (MIT)
  *
- * Copyright (c) 2014-2018 British Columbia Institute of Technology
+ * Copyright (c) 2014-2019 British Columbia Institute of Technology
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,18 +29,23 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2014-2018 British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 3.0.0
  * @filesource
  */
 
+namespace CodeIgniter\Filters;
+
 use CodeIgniter\Config\BaseConfig;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
 use CodeIgniter\Filters\Exceptions\FilterException;
 
+/**
+ * Filters
+ */
 class Filters
 {
 
@@ -117,9 +122,9 @@ class Filters
 	 * @return \CodeIgniter\HTTP\RequestInterface|\CodeIgniter\HTTP\ResponseInterface|mixed
 	 * @throws \CodeIgniter\Filters\Exceptions\FilterException
 	 */
-	public function run(string $uri, $position = 'before')
+	public function run(string $uri, string $position = 'before')
 	{
-		$this->initialize($uri);
+		$this->initialize(strtolower($uri));
 
 		foreach ($this->filters[$position] as $alias => $rules)
 		{
@@ -142,7 +147,7 @@ class Filters
 
 			if ($position === 'before')
 			{
-				$result = $class->before($this->request, $this->arguments[$alias] ?? null);
+				$result = $class->before($this->request);
 
 				if ($result instanceof RequestInterface)
 				{
@@ -204,7 +209,7 @@ class Filters
 	{
 		if ($this->initialized === true)
 		{
-			return;
+			return $this;
 		}
 
 		$this->processGlobals($uri);
@@ -242,9 +247,7 @@ class Filters
 	 */
 	public function addFilter(string $class, string $alias = null, string $when = 'before', string $section = 'globals')
 	{
-		$alias = is_null($alias)
-			? md5($class)
-			: $alias;
+		$alias = $alias ?? md5($class);
 
 		if (! isset($this->config->{$section}))
 		{
@@ -352,7 +355,7 @@ class Filters
 				foreach ($rules as $path)
 				{
 					// Prep it for regex
-					$path = str_replace('/*', '*', $path);
+					$path = strtolower(str_replace('/*', '*', $path));
 					$path = trim(str_replace('*', '.+', $path), '/ ');
 
 					// Path doesn't match the URI? continue on...
@@ -390,7 +393,7 @@ class Filters
 				foreach ($rules as $path)
 				{
 					// Prep it for regex
-					$path = str_replace('/*', '*', $path);
+					$path = strtolower(str_replace('/*', '*', $path));
 					$path = trim(str_replace('*', '.+', $path), '/ ');
 
 					// Path doesn't match the URI? continue on...
@@ -436,7 +439,7 @@ class Filters
 			return;
 		}
 
-		$uri = trim($uri, '/ ');
+		$uri = strtolower(trim($uri, '/ '));
 
 		$matches = [];
 
@@ -448,7 +451,7 @@ class Filters
 				foreach ($settings['before'] as $path)
 				{
 					// Prep it for regex
-					$path = str_replace('/*', '*', $path);
+					$path = strtolower(str_replace('/*', '*', $path));
 					$path = trim(str_replace('*', '.+', $path), '/ ');
 
 					if (preg_match('#' . $path . '#', $uri) !== 1)
@@ -469,7 +472,7 @@ class Filters
 				foreach ($settings['after'] as $path)
 				{
 					// Prep it for regex
-					$path = str_replace('/*', '*', $path);
+					$path = strtolower(str_replace('/*', '*', $path));
 					$path = trim(str_replace('*', '.+', $path), '/ ');
 
 					if (preg_match('#' . $path . '#', $uri) !== 1)
@@ -481,6 +484,7 @@ class Filters
 				}
 
 				$this->filters['after'] = array_merge($this->filters['after'], $matches);
+				$matches                = [];
 			}
 		}
 	}

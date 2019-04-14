@@ -1,5 +1,7 @@
-<?php namespace CodeIgniter\Filters;
+<?php
+namespace CodeIgniter\Filters;
 
+use Config\Filters as FilterConfig;
 use CodeIgniter\Config\Services;
 use CodeIgniter\Filters\Exceptions\FilterException;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -83,6 +85,26 @@ class FiltersTest extends \CIUnitTestCase
 
 		$expected = [
 			'before' => ['bar'],
+			'after'  => [],
+		];
+
+		$this->assertEquals($expected, $filters->initialize()->getFilters());
+	}
+
+	public function testProcessMethodIgnoresMethod()
+	{
+		$_SERVER['REQUEST_METHOD'] = 'DELETE';
+
+		$config  = [
+			'methods' => [
+				'post' => ['foo'],
+				'get'  => ['bar'],
+			],
+		];
+		$filters = new Filters((object) $config, $this->request, $this->response);
+
+		$expected = [
+			'before' => [],
 			'after'  => [],
 		];
 
@@ -515,6 +537,37 @@ class FiltersTest extends \CIUnitTestCase
 		$this->assertTrue(in_array('some_alias', $filters['before']));
 	}
 
+	public function testAddFilterSection()
+	{
+		$_SERVER['REQUEST_METHOD'] = 'GET';
+
+		$config = [];
+
+		$filters = new Filters((object) $config, $this->request, $this->response);
+
+		$filters = $filters->addFilter('Some\OtherClass', 'another', 'before', 'globals')
+				->initialize('admin/foo/bar');
+		$list    = $filters->getFilters();
+
+		$this->assertTrue(in_array('another', $list['before']));
+	}
+
+	public function testInitializeTwice()
+	{
+		$_SERVER['REQUEST_METHOD'] = 'GET';
+
+		$config = [];
+
+		$filters = new Filters((object) $config, $this->request, $this->response);
+
+		$filters = $filters->addFilter('Some\OtherClass', 'another', 'before', 'globals')
+				->initialize('admin/foo/bar')
+				->initialize();
+		$list    = $filters->getFilters();
+
+		$this->assertTrue(in_array('another', $list['before']));
+	}
+
 	public function testEnableFilter()
 	{
 		$_SERVER['REQUEST_METHOD'] = 'GET';
@@ -560,5 +613,71 @@ class FiltersTest extends \CIUnitTestCase
 
 		$this->assertTrue(in_array('role', $found['before']));
 		$this->assertEquals(['admin', 'super'], $filters->getArguments('role'));
+		$this->assertEquals(['role' => ['admin', 'super']], $filters->getArguments());
 	}
+
+	/**
+	 * @expectedException CodeIgniter\Filters\Exceptions\FilterException
+	 */
+	public function testEnableNonFilter()
+	{
+		$_SERVER['REQUEST_METHOD'] = 'GET';
+
+		$config = [
+			'aliases' => ['google' => 'CodeIgniter\Filters\fixtures\GoogleMe'],
+			'globals' => [
+				'before' => [],
+				'after'  => [],
+			],
+		];
+
+		$filters = new Filters((object) $config, $this->request, $this->response);
+
+		$filters = $filters->initialize('admin/foo/bar');
+
+		$filters->enableFilter('goggle', 'before');
+	}
+
+	/**
+	 * @see https://github.com/codeigniter4/CodeIgniter4/issues/1664
+	 */
+	public function testMatchesURICaseInsensitively()
+	{
+		$_SERVER['REQUEST_METHOD'] = 'GET';
+
+		$config  = [
+			'globals' => [
+				'before' => [
+					'foo' => ['except' => 'Admin/*'],
+					'bar'
+				],
+				'after'  => [
+					'foo' => ['except' => 'Admin/*'],
+					'baz'
+				],
+			],
+			'filters' => [
+				'frak' => [
+					'before' => ['Admin/*'],
+					'after'  => ['Admin/*'],
+				],
+			],
+		];
+		$filters = new Filters((object) $config, $this->request, $this->response);
+		$uri     = 'admin/foo/bar';
+
+		$expected = [
+			'before' => [
+				'bar',
+				'frak',
+			],
+			'after'  => [
+				'baz',
+				'frak',
+			],
+		];
+
+		$this->assertEquals($expected, $filters->initialize($uri)->getFilters());
+	}
+
 }

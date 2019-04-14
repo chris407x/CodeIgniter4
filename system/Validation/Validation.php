@@ -1,4 +1,4 @@
-<?php namespace CodeIgniter\Validation;
+<?php
 
 /**
  * CodeIgniter
@@ -7,7 +7,7 @@
  *
  * This content is released under the MIT License (MIT)
  *
- * Copyright (c) 2014-2018 British Columbia Institute of Technology
+ * Copyright (c) 2014-2019 British Columbia Institute of Technology
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,17 +29,22 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2014-2018 British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 3.0.0
  * @filesource
  */
 
+namespace CodeIgniter\Validation;
+
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\Validation\Exceptions\ValidationException;
 use CodeIgniter\View\RendererInterface;
 
+/**
+ * Validator
+ */
 class Validation implements ValidationInterface
 {
 
@@ -116,7 +121,7 @@ class Validation implements ValidationInterface
 
 	/**
 	 * Runs the validation process, returning true/false determining whether
-	 * or not validation was successful.
+	 * validation was successful or not.
 	 *
 	 * @param array  $data  The array of data to validate.
 	 * @param string $group The pre-defined group of rules to apply.
@@ -168,7 +173,7 @@ class Validation implements ValidationInterface
 
 	/**
 	 * Check; runs the validation process, returning true or false
-	 * determining whether or not validation was successful.
+	 * determining whether validation was successful or not.
 	 *
 	 * @param mixed    $value  Value to validation.
 	 * @param string   $rule   Rule.
@@ -202,7 +207,7 @@ class Validation implements ValidationInterface
 	 *
 	 * @return boolean
 	 */
-	protected function processRules(string $field, string $label = null, $value, $rules = null, array $data)
+	protected function processRules(string $field, string $label = null, $value, $rules = null, array $data): bool
 	{
 		// If the if_exist rule is defined...
 		if (in_array('if_exist', $rules))
@@ -373,22 +378,21 @@ class Validation implements ValidationInterface
 	 */
 	public function setRules(array $rules, array $errors = []): ValidationInterface
 	{
-		$this->rules = $rules;
+		$this->customErrors = $errors;
 
-		if (empty($errors))
+		foreach ($rules as $field => &$rule)
 		{
-			foreach ($rules as $field => $setup)
+			if (is_array($rule))
 			{
-				if (isset($setup['errors']))
+				if (array_key_exists('errors', $rule))
 				{
-					$this->customErrors[$field] = $setup['errors'];
+					$this->customErrors[$field] = $rule['errors'];
+					unset($rule['errors']);
 				}
 			}
 		}
-		else
-		{
-			$this->customErrors = $errors;
-		}
+
+		$this->rules = $rules;
 
 		return $this;
 	}
@@ -400,7 +404,7 @@ class Validation implements ValidationInterface
 	 *
 	 * @return array
 	 */
-	public function getRules()
+	public function getRules(): array
 	{
 		return $this->rules;
 	}
@@ -540,12 +544,14 @@ class Validation implements ValidationInterface
 	 * for {group}_errors for an array of custom error messages.
 	 *
 	 * @param string|null $group
+	 *
+	 * @return array|ValidationException|null
 	 */
-	protected function loadRuleGroup(string $group = null)
+	public function loadRuleGroup(string $group = null)
 	{
 		if (empty($group))
 		{
-			return;
+			return null;
 		}
 
 		if (! isset($this->config->$group))
@@ -568,6 +574,8 @@ class Validation implements ValidationInterface
 		{
 			$this->customErrors = $this->config->$errorName;
 		}
+
+		return $this->rules;
 	}
 
 	//--------------------------------------------------------------------
@@ -612,7 +620,7 @@ class Validation implements ValidationInterface
 
 	/**
 	 * Returns the array of errors that were encountered during
-	 * a run() call. The array should be in the followig format:
+	 * a run() call. The array should be in the following format:
 	 *
 	 *    [
 	 *        'field1' => 'error message',

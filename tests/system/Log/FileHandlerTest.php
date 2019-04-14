@@ -1,4 +1,5 @@
-<?php namespace CodeIgniter\Log\Handlers;
+<?php
+namespace CodeIgniter\Log\Handlers;
 
 use Tests\Support\Config\MockLogger as LoggerConfig;
 use Tests\Support\Log\Handlers\MockFileHandler as MockFileHandler;
@@ -50,7 +51,7 @@ class FileHandlerTest extends \CIUnitTestCase
 		fclose($fp);
 
 		// did the log file get created?
-		$expectedResult = "<?php defined('BASEPATH') || exit('No direct script access allowed'); ?>\n";
+		$expectedResult = "<?php defined('SYSTEMPATH') || exit('No direct script access allowed'); ?>\n";
 		$this->assertEquals($expectedResult, $line);
 	}
 

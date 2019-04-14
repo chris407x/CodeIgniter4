@@ -1,4 +1,4 @@
-<?php namespace CodeIgniter\Throttle;
+<?php
 
 /**
  * CodeIgniter
@@ -7,7 +7,7 @@
  *
  * This content is released under the MIT License (MIT)
  *
- * Copyright (c) 2014-2018 British Columbia Institute of Technology
+ * Copyright (c) 2014-2019 British Columbia Institute of Technology
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,12 +29,14 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2014-2018 British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 3.0.0
  * @filesource
  */
+
+namespace CodeIgniter\Throttle;
 
 use CodeIgniter\Cache\CacheInterface;
 
@@ -97,7 +99,7 @@ class Throttler implements ThrottlerInterface
 	 *
 	 * @return integer
 	 */
-	public function getTokenTime()
+	public function getTokenTime(): int
 	{
 		return $this->tokenTime;
 	}
@@ -123,7 +125,7 @@ class Throttler implements ThrottlerInterface
 	 * @return   boolean
 	 * @internal param int $maxRequests
 	 */
-	public function check(string $key, int $capacity, int $seconds, int $cost = 1)
+	public function check(string $key, int $capacity, int $seconds, int $cost = 1): bool
 	{
 		$tokenName = $this->prefix . $key;
 
@@ -193,7 +195,7 @@ class Throttler implements ThrottlerInterface
 	 *
 	 * @return integer
 	 */
-	public function time()
+	public function time(): int
 	{
 		return $this->testTime ?? time();
 	}

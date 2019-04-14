@@ -1,14 +1,22 @@
 <?php namespace CodeIgniter\Database\Live;
 
+use CodeIgniter\Config\Config;
+use CodeIgniter\Database\Exceptions\DataException;
 use CodeIgniter\I18n\Time;
 use CodeIgniter\Model;
 use CodeIgniter\Test\CIDatabaseTestCase;
 use CodeIgniter\Test\ReflectionHelper;
+use Config\Database;
+use Config\Services;
+use Config\Validation;
+use Myth\Auth\Entities\User;
 use Tests\Support\Models\EntityModel;
 use Tests\Support\Models\EventModel;
 use Tests\Support\Models\JobModel;
+use Tests\Support\Models\SecondaryModel;
 use Tests\Support\Models\SimpleEntity;
 use Tests\Support\Models\UserModel;
+use Tests\Support\Models\ValidErrorsModel;
 use Tests\Support\Models\ValidModel;
 
 /**
@@ -27,6 +35,14 @@ class ModelTest extends CIDatabaseTestCase
 		parent::setUp();
 
 		$this->model = new Model($this->db);
+	}
+
+	public function tearDown()
+	{
+		parent::tearDown();
+
+		Services::reset();
+		Config::reset();
 	}
 
 	//--------------------------------------------------------------------
@@ -54,11 +70,38 @@ class ModelTest extends CIDatabaseTestCase
 
 	//--------------------------------------------------------------------
 
+	public function testGetColumnWithStringColumnName()
+	{
+		$model = new JobModel($this->db);
+
+		$job = $model->findColumn('name');
+
+		$this->assertEquals('Developer', $job[0]);
+		$this->assertEquals('Politician', $job[1]);
+		$this->assertEquals('Accountant', $job[2]);
+		$this->assertEquals('Musician', $job[3]);
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testGetColumnsWithMultipleColumnNames()
+	{
+		$model = new JobModel($this->db);
+
+		$this->expectException(DataException::class);
+		$this->expectExceptionMessage('Only single column allowed in Column name.');
+
+		$job = $model->findColumn('name,description');
+	}
+
+	//--------------------------------------------------------------------
+
 	public function testFindActsAsGetWithNoParams()
 	{
 		$model = new JobModel($this->db);
 
-		$jobs = $model->asArray()->find();
+		$jobs = $model->asArray()
+					  ->find();
 
 		$this->assertCount(4, $jobs);
 
@@ -75,7 +118,8 @@ class ModelTest extends CIDatabaseTestCase
 	{
 		$model = new JobModel($this->db);
 
-		$job = $model->asArray()->find(4);
+		$job = $model->asArray()
+					 ->find(4);
 
 		$this->assertInternalType('array', $job);
 	}
@@ -86,7 +130,8 @@ class ModelTest extends CIDatabaseTestCase
 	{
 		$model = new JobModel($this->db);
 
-		$job = $model->asObject()->find(4);
+		$job = $model->asObject()
+					 ->find(4);
 
 		$this->assertInternalType('object', $job);
 	}
@@ -95,15 +140,19 @@ class ModelTest extends CIDatabaseTestCase
 
 	public function testFindRespectsSoftDeletes()
 	{
-		$this->db->table('user')->where('id', 4)->update(['deleted' => 1]);
+		$this->db->table('user')
+				 ->where('id', 4)
+				 ->update(['deleted' => 1]);
 
 		$model = new UserModel($this->db);
 
-		$user = $model->asObject()->find(4);
+		$user = $model->asObject()
+					  ->find(4);
 
 		$this->assertEmpty($user);
 
-		$user = $model->withDeleted()->find(4);
+		$user = $model->withDeleted()
+					  ->find(4);
 
 		// fix for PHP7.2
 		$count = is_array($user) ? count($user) : 1;
@@ -111,6 +160,22 @@ class ModelTest extends CIDatabaseTestCase
 	}
 
 	//--------------------------------------------------------------------
+
+	public function testFindClearsBinds()
+	{
+		$model = new JobModel($this->db);
+
+		$model->find(1);
+		$model->find(1);
+
+		// Binds should be reset to 0 after each one
+		$binds = $model->builder()
+					   ->getBinds();
+		$this->assertCount(0, $binds);
+
+		$query = $model->getLastQuery();
+		$this->assertCount(1, $this->getPrivateProperty($query, 'binds'));
+	}
 
 	public function testFindAllReturnsAllRecords()
 	{
@@ -149,7 +214,9 @@ class ModelTest extends CIDatabaseTestCase
 
 	public function testFindAllRespectsSoftDeletes()
 	{
-		$this->db->table('user')->where('id', 4)->update(['deleted' => 1]);
+		$this->db->table('user')
+				 ->where('id', 4)
+				 ->update(['deleted' => 1]);
 
 		$model = new UserModel($this->db);
 
@@ -157,7 +224,8 @@ class ModelTest extends CIDatabaseTestCase
 
 		$this->assertCount(3, $user);
 
-		$user = $model->withDeleted()->findAll();
+		$user = $model->withDeleted()
+					  ->findAll();
 
 		$this->assertCount(4, $user);
 	}
@@ -168,7 +236,8 @@ class ModelTest extends CIDatabaseTestCase
 	{
 		$model = new UserModel();
 
-		$user = $model->where('id >', 2)->first();
+		$user = $model->where('id >', 2)
+					  ->first();
 
 		// fix for PHP7.2
 		$count = is_array($user) ? count($user) : 1;
@@ -180,7 +249,9 @@ class ModelTest extends CIDatabaseTestCase
 
 	public function testFirstRespectsSoftDeletes()
 	{
-		$this->db->table('user')->where('id', 1)->update(['deleted' => 1]);
+		$this->db->table('user')
+				 ->where('id', 1)
+				 ->update(['deleted' => 1]);
 
 		$model = new UserModel();
 
@@ -191,9 +262,33 @@ class ModelTest extends CIDatabaseTestCase
 		$this->assertEquals(1, $count);
 		$this->assertEquals(2, $user->id);
 
-		$user = $model->withDeleted()->first();
+		$user = $model->withDeleted()
+					  ->first();
 
 		$this->assertEquals(1, $user->id);
+	}
+
+	public function testFirstWithNoPrimaryKey()
+	{
+		$model = new SecondaryModel();
+
+		$this->db->table('secondary')
+				 ->insert([
+					 'id'    => 1,
+					 'key'   => 'foo',
+					 'value' => 'bar',
+				 ]);
+		$this->db->table('secondary')
+				 ->insert([
+					 'id'    => 2,
+					 'key'   => 'bar',
+					 'value' => 'baz',
+				 ]);
+
+		$record = $model->first();
+
+		$this->assertInstanceOf('stdClass', $record);
+		$this->assertEquals('foo', $record->key);
 	}
 
 	//--------------------------------------------------------------------
@@ -206,7 +301,8 @@ class ModelTest extends CIDatabaseTestCase
 		$data->name        = 'Magician';
 		$data->description = 'Makes peoples things dissappear.';
 
-		$model->protect(false)->save($data);
+		$model->protect(false)
+			  ->save($data);
 
 		$this->seeInDatabase('job', ['name' => 'Magician']);
 	}
@@ -222,7 +318,8 @@ class ModelTest extends CIDatabaseTestCase
 			'description' => 'That thing you do.',
 		];
 
-		$result = $model->protect(false)->save($data);
+		$result = $model->protect(false)
+						->save($data);
 
 		$this->seeInDatabase('job', ['name' => 'Apprentice']);
 	}
@@ -239,7 +336,8 @@ class ModelTest extends CIDatabaseTestCase
 			'description' => 'That thing you do.',
 		];
 
-		$result = $model->protect(false)->save($data);
+		$result = $model->protect(false)
+						->save($data);
 
 		$this->seeInDatabase('job', ['name' => 'Apprentice']);
 		$this->assertTrue($result);
@@ -256,7 +354,8 @@ class ModelTest extends CIDatabaseTestCase
 		$data->name        = 'Engineer';
 		$data->description = 'A fancier term for Developer.';
 
-		$result = $model->protect(false)->save($data);
+		$result = $model->protect(false)
+						->save($data);
 
 		$this->seeInDatabase('job', ['name' => 'Engineer']);
 		$this->assertTrue($result);
@@ -274,7 +373,8 @@ class ModelTest extends CIDatabaseTestCase
 		$data->description  = 'A fancier term for Developer.';
 		$data->random_thing = 'Something wicked'; // If not protected, this would kill the script.
 
-		$result = $model->protect(true)->save($data);
+		$result = $model->protect(true)
+						->save($data);
 
 		$this->assertTrue($result);
 	}
@@ -342,7 +442,8 @@ class ModelTest extends CIDatabaseTestCase
 
 		$this->seeInDatabase('job', ['name' => 'Developer']);
 
-		$model->where('id', 1)->delete();
+		$model->where('id', 1)
+			  ->delete();
 
 		$this->dontSeeInDatabase('job', ['name' => 'Developer']);
 	}
@@ -353,11 +454,14 @@ class ModelTest extends CIDatabaseTestCase
 	{
 		$model = new UserModel();
 
-		$this->db->table('user')->where('id', 1)->update(['deleted' => 1]);
+		$this->db->table('user')
+				 ->where('id', 1)
+				 ->update(['deleted' => 1]);
 
 		$model->purgeDeleted();
 
-		$users = $model->withDeleted()->findAll();
+		$users = $model->withDeleted()
+					   ->findAll();
 
 		$this->assertCount(3, $users);
 	}
@@ -368,9 +472,12 @@ class ModelTest extends CIDatabaseTestCase
 	{
 		$model = new UserModel($this->db);
 
-		$this->db->table('user')->where('id', 1)->update(['deleted' => 1]);
+		$this->db->table('user')
+				 ->where('id', 1)
+				 ->update(['deleted' => 1]);
 
-		$users = $model->onlyDeleted()->findAll();
+		$users = $model->onlyDeleted()
+					   ->findAll();
 
 		$this->assertCount(1, $users);
 	}
@@ -397,6 +504,7 @@ class ModelTest extends CIDatabaseTestCase
 		$model = new ValidModel($this->db);
 
 		$data = [
+			'name'        => null,
 			'description' => 'some great marketing stuff',
 		];
 
@@ -407,6 +515,52 @@ class ModelTest extends CIDatabaseTestCase
 		$this->assertEquals('You forgot to name the baby.', $errors['name']);
 	}
 
+	//--------------------------------------------------------------------
+
+	public function testValidationWithSetValidationMessage()
+	{
+		$model = new ValidModel($this->db);
+
+		$data = [
+			'name'        => null,
+			'description' => 'some great marketing stuff',
+		];
+
+		$model->setValidationMessage('name', [
+			'required'   => 'Your baby name is missing.',
+			'min_length' => 'Too short, man!',
+		]);
+		$this->assertFalse($model->insert($data));
+
+		$errors = $model->errors();
+
+		$this->assertEquals('Your baby name is missing.', $errors['name']);
+	}
+
+	//--------------------------------------------------------------------
+
+	public function testValidationWithSetValidationMessages()
+	{
+		$model = new ValidModel($this->db);
+
+		$data = [
+			'name'        => null,
+			'description' => 'some great marketing stuff',
+		];
+
+		$model->setValidationMessages([
+			'name' => [
+				'required'   => 'Your baby name is missing.',
+				'min_length' => 'Too short, man!',
+			],
+		]);
+
+		$this->assertFalse($model->insert($data));
+
+		$errors = $model->errors();
+
+		$this->assertEquals('Your baby name is missing.', $errors['name']);
+	}
 	//--------------------------------------------------------------------
 
 	public function testValidationPlaceholdersSuccess()
@@ -444,7 +598,102 @@ class ModelTest extends CIDatabaseTestCase
 			'description' => 'some great marketing stuff',
 		];
 
-		$this->assertInternalType('numeric', $model->skipValidation(true)->insert($data));
+		$this->assertInternalType('numeric', $model->skipValidation(true)
+												   ->insert($data));
+	}
+
+	public function testCleanValidationRemovesAllWhenNoDataProvided()
+	{
+		$model   = new Model($this->db);
+		$cleaner = $this->getPrivateMethodInvoker($model, 'cleanValidationRules');
+
+		$rules = [
+			'name' => 'required',
+			'foo'  => 'bar',
+		];
+
+		$rules = $cleaner($rules, null);
+
+		$this->assertEmpty($rules);
+	}
+
+	public function testCleanValidationRemovesOnlyForFieldsNotProvided()
+	{
+		$model   = new Model($this->db);
+		$cleaner = $this->getPrivateMethodInvoker($model, 'cleanValidationRules');
+
+		$rules = [
+			'name' => 'required',
+			'foo'  => 'required',
+		];
+
+		$data = [
+			'foo' => 'bar',
+		];
+
+		$rules = $cleaner($rules, $data);
+
+		$this->assertTrue(array_key_exists('foo', $rules));
+		$this->assertFalse(array_key_exists('name', $rules));
+	}
+
+	public function testCleanValidationReturnsAllWhenAllExist()
+	{
+		$model   = new Model($this->db);
+		$cleaner = $this->getPrivateMethodInvoker($model, 'cleanValidationRules');
+
+		$rules = [
+			'name' => 'required',
+			'foo'  => 'required',
+		];
+
+		$data = [
+			'foo'  => 'bar',
+			'name' => null,
+		];
+
+		$rules = $cleaner($rules, $data);
+
+		$this->assertTrue(array_key_exists('foo', $rules));
+		$this->assertTrue(array_key_exists('name', $rules));
+	}
+
+	public function testValidationPassesWithMissingFields()
+	{
+		$model = new ValidModel();
+
+		$data = [
+			'foo' => 'bar',
+		];
+
+		$result = $model->validate($data);
+
+		$this->assertTrue($result);
+	}
+
+	public function testValidationWithGroupName()
+	{
+		$config            = new \Config\Validation();
+		$config->grouptest = [
+			'name'  => [
+				'required',
+				'min_length[3]',
+			],
+			'token' => 'in_list[{id}]',
+		];
+
+		$data = [
+			'name'  => 'abc',
+			'id'    => 13,
+			'token' => 13,
+		];
+
+		\CodeIgniter\Config\Config::injectMock('Validation', $config);
+
+		$model = new ValidModel($this->db);
+		$this->setPrivateProperty($model, 'validationRules', 'grouptest');
+
+		$this->assertTrue($model->validate($data));
 	}
 
 	//--------------------------------------------------------------------
@@ -453,7 +702,8 @@ class ModelTest extends CIDatabaseTestCase
 	{
 		$model = new EntityModel($this->db);
 
-		$entity = $model->where('name', 'Developer')->first();
+		$entity = $model->where('name', 'Developer')
+						->first();
 
 		$this->assertInstanceOf(SimpleEntity::class, $entity);
 		$this->assertEquals('Developer', $entity->name);
@@ -556,7 +806,8 @@ class ModelTest extends CIDatabaseTestCase
 			'email'   => 'foo@example.com',
 			'name'    => 'Foo Bar',
 			'country' => 'US',
-		])->insert();
+		])
+			  ->insert();
 
 		$this->seeInDatabase('user', [
 			'email' => 'foo@example.com',
@@ -579,7 +830,8 @@ class ModelTest extends CIDatabaseTestCase
 
 		$model->set([
 			'name' => 'Fred Flintstone',
-		])->update($userId);
+		])
+			  ->update($userId);
 
 		$this->seeInDatabase('user', [
 			'id'    => $userId,
@@ -606,7 +858,8 @@ class ModelTest extends CIDatabaseTestCase
 			->where('id', $userId)
 			->set([
 				'name' => 'Fred Flintstone',
-			])->update();
+			])
+			->update();
 
 		$this->seeInDatabase('user', [
 			'id'    => $userId,
@@ -723,6 +976,7 @@ class ModelTest extends CIDatabaseTestCase
 
 	public function testSelectAndEntitiesSaveOnlyChangedValues()
 	{
+		// Insert value in job table
 		$this->hasInDatabase('job', [
 			'name'        => 'Rocket Scientist',
 			'description' => 'Plays guitar for Queen',
@@ -731,17 +985,178 @@ class ModelTest extends CIDatabaseTestCase
 
 		$model = new EntityModel();
 
-		$job = $model->select('id, name')->where('name', 'Rocket Scientist')->first();
+		// get only id, name column
+		$job = $model->select('id, name')
+		             ->where('name', 'Rocket Scientist')
+		             ->first();
 
+		// Hence getting Null as description column not in select clause
 		$this->assertNull($job->description);
+
+		// Equals with name to check, correct record fetched or not.
 		$this->assertEquals('Rocket Scientist', $job->name);
 
+		$job->description = 'Some guitar description';
+
+		// saving the result set with description as empty
 		$model->save($job);
 
+		// check for the record to same entry exists or not
 		$this->seeInDatabase('job', [
-			'id'          => $job->id,
-			'name'        => 'Rocket Scientist',
-			'description' => 'Plays guitar for Queen',
+			'id'   => $job->id,
+			'name' => 'Rocket Scientist',
 		]);
+
+		// select all columns from job table
+		$job = $model->select('id, name, description')
+		             ->where('name', 'Rocket Scientist')
+		             ->first();
+
+		// check whether the Null value successfully updated or not
+		$this->assertEquals('Some guitar description', $job->description);
+	}
+
+	public function testUpdateNoPrimaryKey()
+	{
+		$model = new SecondaryModel();
+
+		$this->db->table('secondary')
+				 ->insert([
+					 'id'    => 1,
+					 'key'   => 'foo',
+					 'value' => 'bar',
+				 ]);
+
+		$this->dontSeeInDatabase('secondary', [
+			'key'   => 'bar',
+			'value' => 'baz',
+		]);
+
+		$model->where('key', 'foo')
+			  ->update(null, ['key' => 'bar', 'value' => 'baz']);
+
+		$this->seeInDatabase('secondary', [
+			'key'   => 'bar',
+			'value' => 'baz',
+		]);
+	}
+
+	/**
+	 * @see https://github.com/codeigniter4/CodeIgniter4/issues/1617
+	 */
+	public function testCountAllResultsRespectsSoftDeletes()
+	{
+		$model = new UserModel();
+
+		// testSeeder has 4 users....
+		$this->assertEquals(4, $model->countAllResults());
+
+		$model->where('name', 'Derek Jones')
+			  ->delete();
+
+		$this->assertEquals(3, $model->countAllResults());
+	}
+
+	/**
+	 * @see https://github.com/codeigniter4/CodeIgniter4/issues/1584
+	 */
+	public function testUpdateWithValidation()
+	{
+		$model = new ValidModel($this->db);
+
+		$data = [
+			'description' => 'This is a first test!',
+			'name'        => 'valid',
+			'id'          => 42,
+			'token'       => 42,
+		];
+
+		$id = $model->insert($data);
+
+		$this->assertTrue((bool)$id);
+
+		$data['description'] = 'This is a second test!';
+		unset($data['name']);
+
+		$result = $model->update($id, $data);
+		$this->assertTrue($result);
+	}
+
+	/**
+	 * @see https://github.com/codeigniter4/CodeIgniter4/issues/1717
+	 */
+	public function testRequiredWithValidationEmptyString()
+	{
+		$model = new ValidModel($this->db);
+
+		$data = [
+			'name' => '',
+		];
+
+		$this->assertFalse($model->insert($data));
+	}
+
+	/**
+	 * @see https://github.com/codeigniter4/CodeIgniter4/issues/1717
+	 */
+	public function testRequiredWithValidationNull()
+	{
+		$model = new ValidModel($this->db);
+
+		$data = [
+			'name' => null,
+		];
+
+		$this->assertFalse($model->insert($data));
+	}
+
+	/**
+	 * @see https://github.com/codeigniter4/CodeIgniter4/issues/1717
+	 */
+	public function testRequiredWithValidationTrue()
+	{
+		$model = new ValidModel($this->db);
+
+		$data = [
+			'name'        => 'foobar',
+			'description' => 'just becaues we have to',
+		];
+
+		$this->assertTrue($model->insert($data) !== false);
+	}
+
+	/**
+	 * @see https://github.com/codeigniter4/CodeIgniter4/issues/1574
+	 */
+	public function testValidationIncludingErrors()
+	{
+		$model = new ValidErrorsModel($this->db);
+
+		$data = [
+			'description' => 'This is a first test!',
+			'name'        => 'valid',
+			'id'          => 42,
+			'token'       => 42,
+		];
+
+		$id = $model->insert($data);
+
+		$this->assertFalse((bool)$id);
+
+		$errors = $model->errors();
+
+		$this->assertEquals('Minimum Length Error', $model->errors()['name']);
+	}
+
+	/**
+	 * @expectedException        \CodeIgniter\Exceptions\ModelException
+	 * @expectedExceptionMessage `Tests\Support\Models\UserModel` model class does not specify a Primary Key.
+	 */
+	public function testThrowsWithNoPrimaryKey()
+	{
+		$model = new UserModel();
+		$this->setPrivateProperty($model, 'primaryKey', '');
+
+		$model->find(1);
 	}
 }

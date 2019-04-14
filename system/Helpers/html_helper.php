@@ -6,7 +6,7 @@
  *
  * This content is released under the MIT License (MIT)
  *
- * Copyright (c) 2014-2018 British Columbia Institute of Technology
+ * Copyright (c) 2014-2019 British Columbia Institute of Technology
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +28,7 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2014-2018 British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
  * @license    https://opensource.org/licenses/MIT    MIT License
  * @link       https://codeigniter.com
  * @since      Version 3.0.0
@@ -38,7 +38,7 @@
 // --------------------------------------------------------------------
 
 /**
- * CodeIgniter HTML Helper
+ * CodeIgniter HTML Helpers
  *
  * @package    CodeIgniter
  * @subpackage Helpers
@@ -156,10 +156,9 @@ if (! function_exists('img'))
 			$src = ['src' => $src];
 		}
 
-		//If there is no alt attribute defined, set it to an empty string.
 		if (! isset($src['alt']))
 		{
-			$src['alt'] = '';
+			$src['alt'] = $attributes['alt'] ?? '';
 		}
 
 		$img = '<img';
@@ -182,6 +181,12 @@ if (! function_exists('img'))
 			{
 				$img .= ' ' . $k . '="' . $v . '"';
 			}
+		}
+
+		// prevent passing "alt" to stringify_attributes
+		if (is_array($attributes) && isset($attributes['alt']))
+		{
+			unset($attributes['alt']);
 		}
 
 		return $img . stringify_attributes($attributes) . ' />';
@@ -326,7 +331,7 @@ if (! function_exists('video'))
 	/**
 	 * Video
 	 *
-	 * Geneartes a video element to embed videos. The video element can
+	 * Generates a video element to embed videos. The video element can
 	 * contain one or more video sources
 	 *
 	 * @param  mixed   $src                Either a source string or an array of sources
@@ -456,6 +461,17 @@ if (! function_exists('audio'))
 
 if (! function_exists('_media'))
 {
+	/**
+	 * Generate media based tag
+	 *
+	 * @param string $name
+	 * @param array  $types
+	 * @param string $unsupportedMessage
+	 * @param string $attributes
+	 * @param array  $tracks
+	 *
+	 * @return string
+	 */
 	function _media(string $name, array $types = [], string $unsupportedMessage = '', string $attributes = '', array $tracks = []): string
 	{
 		$media = '<' . $name;
@@ -682,7 +698,12 @@ if (! function_exists('embed'))
 
 if (! function_exists('_has_protocol'))
 {
-	function _has_protocol($url)
+	/**
+	 * @param string $url
+	 *
+	 * @return false|integer
+	 */
+	function _has_protocol(string $url)
 	{
 		return preg_match('#^([a-z]+:)?//#i', $url);
 	}
@@ -692,7 +713,12 @@ if (! function_exists('_has_protocol'))
 
 if (! function_exists('_space_indent'))
 {
-	function _space_indent($depth = 2)
+	/**
+	 * @param integer $depth
+	 *
+	 * @return string
+	 */
+	function _space_indent($depth = 2): string
 	{
 		return str_repeat(' ', $depth);
 	}

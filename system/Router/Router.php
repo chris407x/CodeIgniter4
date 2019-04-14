@@ -1,4 +1,4 @@
-<?php namespace CodeIgniter\Router;
+<?php
 
 /**
  * CodeIgniter
@@ -7,7 +7,7 @@
  *
  * This content is released under the MIT License (MIT)
  *
- * Copyright (c) 2014-2018 British Columbia Institute of Technology
+ * Copyright (c) 2014-2019 British Columbia Institute of Technology
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,12 +29,14 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2014-2018 British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 3.0.0
  * @filesource
  */
+
+namespace CodeIgniter\Router;
 
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\Router\Exceptions\RouterException;
@@ -160,9 +162,12 @@ class Router implements RouterInterface
 	 * @param string $uri
 	 *
 	 * @return mixed
+	 * @throws \CodeIgniter\Router\RedirectException
 	 */
 	public function handle(string $uri = null)
 	{
+		$this->translateURIDashes = $this->collection->shouldTranslateURIDashes();
+
 		// If we cannot find a URI to match against, then
 		// everything runs off of it's default settings.
 		if (empty($uri))
@@ -192,7 +197,7 @@ class Router implements RouterInterface
 
 		$this->autoRoute($uri);
 
-		return $this->controller;
+		return $this->controllerName();
 	}
 
 	//--------------------------------------------------------------------
@@ -216,7 +221,9 @@ class Router implements RouterInterface
 	 */
 	public function controllerName()
 	{
-		return $this->controller;
+		return $this->translateURIDashes
+			? str_replace('-', '_', $this->controller)
+			: $this->controller;
 	}
 
 	//--------------------------------------------------------------------
@@ -229,7 +236,9 @@ class Router implements RouterInterface
 	 */
 	public function methodName(): string
 	{
-		return $this->method;
+		return $this->translateURIDashes
+			? str_replace('-', '_', $this->method)
+			: $this->method;
 	}
 
 	//--------------------------------------------------------------------
@@ -404,10 +413,14 @@ class Router implements RouterInterface
 		// Loop through the route array looking for wildcards
 		foreach ($routes as $key => $val)
 		{
+			$key = $key === '/'
+				? $key
+				: ltrim($key, '/ ');
+
 			// Are we dealing with a locale?
 			if (strpos($key, '{locale}') !== false)
 			{
-				$localeSegment = array_search('{locale}', explode('/', $key));
+				$localeSegment = array_search('{locale}', preg_split('/[\/]*((^[a-zA-Z0-9])|\(([^()]*)\))*[\/]+/m', $key));
 
 				// Replace it with a regex so it
 				// will actually match.
@@ -462,9 +475,17 @@ class Router implements RouterInterface
 				{
 					$val = preg_replace('#^' . $key . '$#', $val, $uri);
 				}
-				elseif (strpos($key, '/') !== false)
+				elseif (strpos($val, '/') !== false)
 				{
-					$val = str_replace('/', '\\', $val);
+					[
+						$controller,
+						$method,
+					] = explode( '::', $val );
+
+					// Only replace slashes in the controller, not in the method.
+					$controller = str_replace('/', '\\', $controller);
+
+					$val = $controller . '::' . $method;
 				}
 
 				// Is this route supposed to redirect to another?
@@ -529,7 +550,7 @@ class Router implements RouterInterface
 		}
 
 		// Load the file so that it's available for CodeIgniter.
-		$file = APPPATH . 'Controllers/' . $this->directory . $this->controller . '.php';
+		$file = APPPATH . 'Controllers/' . $this->directory . $this->controllerName() . '.php';
 		if (is_file($file))
 		{
 			include_once $file;
@@ -539,7 +560,7 @@ class Router implements RouterInterface
 		// We have to check for a length over 1, since by default it will be '\'
 		if (strpos($this->controller, '\\') === false && strlen($this->collection->getDefaultNamespace()) > 1)
 		{
-			$this->controller = str_replace('/', '\\', $this->collection->getDefaultNamespace() . $this->directory . $this->controller);
+			$this->controller = str_replace('/', '\\', $this->collection->getDefaultNamespace() . $this->directory . $this->controllerName());
 		}
 	}
 
@@ -554,6 +575,8 @@ class Router implements RouterInterface
 	 */
 	protected function validateRequest(array $segments)
 	{
+		$segments = array_filter($segments);
+
 		$c                  = count($segments);
 		$directory_override = isset($this->directory);
 
@@ -564,8 +587,7 @@ class Router implements RouterInterface
 			$test = $this->directory . ucfirst($this->translateURIDashes === true ? str_replace('-', '_', $segments[0]) : $segments[0]
 			);
 
-			if (! is_file(APPPATH . 'Controllers/' . $test . '.php') && $directory_override === false && is_dir(APPPATH . 'Controllers/' . $this->directory . ucfirst($segments[0]))
-			)
+			if (! is_file(APPPATH . 'Controllers/' . $test . '.php') && $directory_override === false && is_dir(APPPATH . 'Controllers/' . $this->directory . ucfirst($segments[0])))
 			{
 				$this->setDirectory(array_shift($segments), true);
 				continue;
@@ -618,15 +640,6 @@ class Router implements RouterInterface
 			$this->setDefaultController();
 
 			return;
-		}
-
-		if ($this->translateURIDashes === true)
-		{
-			$segments[0] = str_replace('-', '_', $segments[0]);
-			if (isset($segments[1]))
-			{
-				$segments[1] = str_replace('-', '_', $segments[1]);
-			}
 		}
 
 		list($controller, $method) = array_pad(explode('::', $segments[0]), 2, null);

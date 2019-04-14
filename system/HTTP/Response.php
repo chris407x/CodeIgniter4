@@ -1,5 +1,5 @@
 <?php
-namespace CodeIgniter\HTTP;
+
 
 /**
  * CodeIgniter
@@ -8,7 +8,7 @@ namespace CodeIgniter\HTTP;
  *
  * This content is released under the MIT License (MIT)
  *
- * Copyright (c) 2014-2018 British Columbia Institute of Technology
+ * Copyright (c) 2014-2019 British Columbia Institute of Technology
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,12 +30,14 @@ namespace CodeIgniter\HTTP;
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2014-2018 British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 3.0.0
  * @filesource
  */
+
+namespace CodeIgniter\HTTP;
 
 use Config\App;
 use Config\Format;
@@ -807,7 +809,7 @@ class Response extends Message implements ResponseInterface
 	/**
 	 * Set a cookie
 	 *
-	 * Accepts an arbitrary number of binds (up to 7) or an associateive
+	 * Accepts an arbitrary number of binds (up to 7) or an associative
 	 * array in the first parameter containing all the values.
 	 *
 	 * @param string|array  $name     Cookie name or array containing binds

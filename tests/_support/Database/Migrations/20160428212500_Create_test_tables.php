@@ -46,7 +46,10 @@ class Migration_Create_test_tables extends \CodeIgniter\Database\Migration
 				'type'       => 'VARCHAR',
 				'constraint' => 40,
 			],
-			'description' => ['type' => 'TEXT'],
+			'description' => [
+				'type' => 'TEXT',
+				'null' => true,
+			],
 			'created_at'  => [
 				'type' => 'DATETIME',
 				'null' => true,
@@ -85,6 +88,22 @@ class Migration_Create_test_tables extends \CodeIgniter\Database\Migration
 		]);
 		$this->forge->addKey('id', true);
 		$this->forge->createTable('empty', true);
+
+		// Secondary Table
+		$this->forge->addField([
+			'id'    => [
+				'type'          => 'INTEGER',
+				'constraint'    => 3,
+				$unique_or_auto => true,
+			],
+			'key'   => [
+				'type'       => 'VARCHAR',
+				'constraint' => 40,
+			],
+			'value' => ['type' => 'TEXT'],
+		]);
+		$this->forge->addKey('id', true);
+		$this->forge->createTable('secondary', true);
 	}
 
 	//--------------------------------------------------------------------
@@ -95,6 +114,7 @@ class Migration_Create_test_tables extends \CodeIgniter\Database\Migration
 		$this->forge->dropTable('job');
 		$this->forge->dropTable('misc');
 		$this->forge->dropTable('empty');
+		$this->forge->dropTable('secondary');
 	}
 
 	//--------------------------------------------------------------------

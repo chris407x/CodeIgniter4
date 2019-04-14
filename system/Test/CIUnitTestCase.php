@@ -1,5 +1,5 @@
 <?php
-namespace CodeIgniter\Test;
+
 
 /**
  * CodeIgniter
@@ -8,7 +8,7 @@ namespace CodeIgniter\Test;
  *
  * This content is released under the MIT License (MIT)
  *
- * Copyright (c) 2014-2018 British Columbia Institute of Technology
+ * Copyright (c) 2014-2019 British Columbia Institute of Technology
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,12 +30,14 @@ namespace CodeIgniter\Test;
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2014-2018 British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 3.0.0
  * @filesource
  */
+
+namespace CodeIgniter\Test;
 
 use Config\Paths;
 use CodeIgniter\Events\Events;
@@ -54,14 +56,6 @@ class CIUnitTestCase extends TestCase
 	 * @var \CodeIgniter\CodeIgniter
 	 */
 	protected $app;
-
-	/**
-	 * Path to Config folder, relative
-	 * to the system folder.
-	 *
-	 * @var string
-	 */
-	protected $configPath = '../application/Config';
 
 	protected function setUp()
 	{
@@ -236,52 +230,13 @@ class CIUnitTestCase extends TestCase
 	 * Loads up an instance of CodeIgniter
 	 * and gets the environment setup.
 	 *
-	 * @return mixed
+	 * @return \CodeIgniter\CodeIgniter
 	 */
 	protected function createApplication()
 	{
-		$systemPath = realpath(__DIR__ . '/../');
+		$paths = new Paths();
 
-		require_once $systemPath . '/' . $this->configPath . '/Paths.php';
-		$paths = $this->adjustPaths(new \Config\Paths());
-
-		$app = require $systemPath . '/bootstrap.php';
-		return $app;
-	}
-
-	/**
-	 * Attempts to adjust our system paths to account
-	 * for relative location of our tests folder.
-	 * Not foolproof, but works well for default locations.
-	 *
-	 * @param \Config\Paths $paths
-	 *
-	 * @return \Config\Paths
-	 */
-	protected function adjustPaths(Paths $paths)
-	{
-		$tests = [
-			'systemDirectory',
-			'applicationDirectory',
-			'writableDirectory',
-			'testsDirectory',
-		];
-
-		foreach ($tests as $test)
-		{
-			if (is_dir($paths->$test) || strpos($paths->$test, '../') !== 0)
-			{
-				continue;
-			}
-
-			$check = substr($paths->$test, 3);
-			if (is_dir($check))
-			{
-				$paths->$test = $check;
-			}
-		}
-
-		return $paths;
+		return require realpath(__DIR__ . '/../') . '/bootstrap.php';
 	}
 
 	//--------------------------------------------------------------------

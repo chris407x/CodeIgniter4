@@ -1,4 +1,5 @@
-<?php namespace CodeIgniter\Language;
+<?php
+
 
 /**
  * CodeIgniter
@@ -7,7 +8,7 @@
  *
  * This content is released under the MIT License (MIT)
  *
- * Copyright (c) 2014-2018 British Columbia Institute of Technology
+ * Copyright (c) 2014-2019 British Columbia Institute of Technology
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,12 +30,14 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2014-2018 British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 3.0.0
  * @filesource
  */
+
+namespace CodeIgniter\Language;
 
 use CodeIgniter\Config\Services;
 
@@ -132,6 +135,12 @@ class Language
 	 */
 	public function getLine(string $line, array $args = [])
 	{
+		// ignore requests with no file specified
+		if (! strpos($line, '.'))
+		{
+			return $line;
+		}
+
 		// Parse out the file name and the actual alias.
 		// Will load the language file and strings.
 		[
@@ -151,6 +160,13 @@ class Language
 			] = $this->parseLine($line, $locale);
 
 			$output = $this->language[$locale][$file][$parsedLine] ?? null;
+		}
+
+		// if still not found, try English
+		if (empty($output))
+		{
+			$this->parseLine($line, 'en');
+			$output = $this->language['en'][$file][$parsedLine] ?? null;
 		}
 
 		$output = $output ?? $line;
@@ -176,17 +192,6 @@ class Language
 	 */
 	protected function parseLine(string $line, string $locale): array
 	{
-		// If there's no possibility of a filename being in the string
-		// simply return the string, and they can parse the replacement
-		// without it being in a file.
-		if (strpos($line, '.') === false)
-		{
-			return [
-				null,
-				$line,
-			];
-		}
-
 		$file = substr($line, 0, strpos($line, '.'));
 		$line = substr($line, strlen($file) + 1);
 
@@ -278,7 +283,7 @@ class Language
 		$this->loadedFiles[$locale][] = $file;
 
 		// Merge our string
-		$this->language[$this->locale][$file] = $lang;
+		$this->language[$locale][$file] = $lang;
 	}
 
 	//--------------------------------------------------------------------
@@ -293,22 +298,19 @@ class Language
 	 */
 	protected function requireFile(string $path): array
 	{
-		$files = Services::locator()->search($path);
-
+		$files   = Services::locator()->search($path);
 		$strings = [];
 
 		foreach ($files as $file)
 		{
-			if (! is_file($file))
-			{
-				continue;
-			}
-
 			// On some OS's we were seeing failures
 			// on this command returning boolean instead
 			// of array during testing, so we've removed
 			// the require_once for now.
-			$strings[] = require $file;
+			if (is_file($file))
+			{
+				$strings[] = require $file;
+			}
 		}
 
 		if (isset($strings[1]))

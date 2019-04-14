@@ -1,4 +1,4 @@
-<?php namespace CodeIgniter\Debug;
+<?php
 
 /**
  * CodeIgniter
@@ -7,7 +7,7 @@
  *
  * This content is released under the MIT License (MIT)
  *
- * Copyright (c) 2014-2018 British Columbia Institute of Technology
+ * Copyright (c) 2014-2019 British Columbia Institute of Technology
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,14 +29,17 @@
  *
  * @package    CodeIgniter
  * @author     CodeIgniter Dev Team
- * @copyright  2014-2018 British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright  2014-2019 British Columbia Institute of Technology (https://bcit.ca/)
  * @license    https://opensource.org/licenses/MIT	MIT License
  * @link       https://codeigniter.com
  * @since      Version 3.0.0
  * @filesource
  */
 
+namespace CodeIgniter\Debug;
+
 use CodeIgniter\API\ResponseTrait;
+use Config\Paths;
 
 /**
  * Exceptions manager
@@ -176,7 +179,8 @@ class Exceptions
 	 */
 	public function errorHandler(int $severity, string $message, string $file = null, int $line = null, $context = null)
 	{
-		if (! (\error_reporting() & $severity)) {
+		if (! (\error_reporting() & $severity))
+		{
 			return;
 		}
 
@@ -258,7 +262,8 @@ class Exceptions
 		$path = $this->viewPath;
 		if (empty($path))
 		{
-			$path = APPPATH . 'Views/errors/';
+			$paths = new Paths();
+			$path  = $paths->viewDirectory . '/errors/';
 		}
 
 		$path = is_cli()
@@ -295,7 +300,7 @@ class Exceptions
 	 *
 	 * @return array
 	 */
-	protected function collectVars(\Throwable $exception, int $statusCode)
+	protected function collectVars(\Throwable $exception, int $statusCode): array
 	{
 		return [
 			'title'   => get_class($exception),
@@ -353,15 +358,15 @@ class Exceptions
 	 *
 	 * @return string
 	 */
-	public static function cleanPath($file)
+	public static function cleanPath(string $file): string
 	{
 		if (strpos($file, APPPATH) === 0)
 		{
 			$file = 'APPPATH/' . substr($file, strlen(APPPATH));
 		}
-		elseif (strpos($file, BASEPATH) === 0)
+		elseif (strpos($file, SYSTEMPATH) === 0)
 		{
-			$file = 'BASEPATH/' . substr($file, strlen(BASEPATH));
+			$file = 'SYSTEMPATH/' . substr($file, strlen(SYSTEMPATH));
 		}
 		elseif (strpos($file, FCPATH) === 0)
 		{
@@ -400,13 +405,13 @@ class Exceptions
 	/**
 	 * Creates a syntax-highlighted version of a PHP file.
 	 *
-	 * @param $file
-	 * @param $lineNumber
-	 * @param integer    $lines
+	 * @param string  $file
+	 * @param integer $lineNumber
+	 * @param integer $lines
 	 *
 	 * @return boolean|string
 	 */
-	public static function highlightFile($file, $lineNumber, $lines = 15)
+	public static function highlightFile(string $file, int $lineNumber, int $lines = 15)
 	{
 		if (empty($file) || ! is_readable($file))
 		{
